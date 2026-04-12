@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -26,8 +26,19 @@ class LoginSchema(Schema):
     password = fields.Str(required=True)
 
 
+class ForgotPasswordSchema(Schema):
+    email = fields.Email(required=True)
+
+
+class ResetPasswordSchema(Schema):
+    token = fields.Str(required=True)
+    password = fields.Str(required=True, validate=validate.Length(min=8, max=128))
+
+
 signup_schema = SignupSchema()
 login_schema = LoginSchema()
+forgot_password_schema = ForgotPasswordSchema()
+reset_password_schema = ResetPasswordSchema()
 
 
 # ---------- Routes ----------
@@ -88,3 +99,51 @@ def get_current_user():
     if not user:
         return jsonify({"error": "User not found"}), 404
     return jsonify({"user": user.to_dict()}), 200
+
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+@limiter.limit("3 per minute")
+def forgot_password():
+    try:
+        data = forgot_password_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    user = User.query.filter_by(email=data["email"]).first()
+
+    # Always return success to prevent email enumeration
+    if not user:
+        return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+    token = user.generate_reset_token()
+    db.session.commit()
+
+    frontend_url = current_app.config["FRONTEND_URL"]
+    reset_link = f"{frontend_url}/reset-password?token={token}"
+
+    # Log reset link (in production, send via email service)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Password reset link for {user.email}: {reset_link}")
+
+    return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+
+@auth_bp.route("/reset-password", methods=["POST"])
+@limiter.limit("5 per minute")
+def reset_password():
+    try:
+        data = reset_password_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    user = User.query.filter_by(reset_token=data["token"]).first()
+
+    if not user or not user.verify_reset_token():
+        return jsonify({"error": "Invalid or expired reset token"}), 400
+
+    user.set_password(data["password"])
+    user.clear_reset_token()
+    db.session.commit()
+
+    return jsonify({"message": "Password has been reset successfully."}), 200
