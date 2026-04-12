@@ -8,7 +8,7 @@ describe("ProtectedRoute", () => {
   it("redirects to login when not authenticated", () => {
     // Clear any token
     localStorage.removeItem("token");
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/dashboard"]}>
         <AuthProvider>
           <ProtectedRoute>
