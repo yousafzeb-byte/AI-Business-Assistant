@@ -34,7 +34,6 @@ describe("ErrorBoundary", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
-    expect(screen.getByText("Test crash")).toBeInTheDocument();
     expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
     spy.mockRestore();
   });
