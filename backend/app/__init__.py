@@ -1,8 +1,9 @@
 import logging
 import os
+import re
 import sys
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -10,7 +11,7 @@ from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from app.config import Config
+from app.config import Config, _build_cors_origins
 
 # ---------- Structured logging ----------
 handler = logging.StreamHandler(sys.stdout)
@@ -32,6 +33,16 @@ limiter = Limiter(
 )
 
 
+def _is_allowed_origin(origin: str, allowed_origins: list[object]) -> bool:
+    """Return True when the request origin matches configured allowed origins."""
+    for allowed_origin in allowed_origins:
+        if isinstance(allowed_origin, str) and allowed_origin == origin:
+            return True
+        if hasattr(allowed_origin, "match") and re.match(allowed_origin, origin):
+            return True
+    return False
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -45,9 +56,11 @@ def create_app(config_class=Config):
     limiter._storage_uri = app.config.get("RATELIMIT_STORAGE_URI", "memory://")
     limiter.init_app(app)
 
+    allowed_origins = app.config.get("CORS_ORIGINS") or _build_cors_origins(app.config["FRONTEND_URL"])
+
     CORS(
         app,
-        origins=[app.config["FRONTEND_URL"]],
+        origins=allowed_origins,
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -60,6 +73,15 @@ def create_app(config_class=Config):
     # ---------- Security headers ----------
     @app.after_request
     def set_security_headers(response):
+        request_origin = request.headers.get("Origin")
+        if request_origin and _is_allowed_origin(request_origin, allowed_origins):
+            response.headers["Access-Control-Allow-Origin"] = request_origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response.headers["Access-Control-Max-Age"] = "600"
+            response.headers["Vary"] = "Origin"
+
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"

@@ -79,6 +79,19 @@ class TestLogin:
         })
         assert resp.status_code == 401
 
+    def test_login_preflight_allows_local_vite_ports(self, client: FlaskClient):
+        resp = client.options(
+            "/api/auth/login",
+            headers={
+                "Origin": "http://localhost:5174",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+        assert resp.status_code == 200
+        assert resp.headers["Access-Control-Allow-Origin"] == "http://localhost:5174"
+
 
 class TestMe:
     def test_get_me_success(self, client: FlaskClient, auth_headers: dict):

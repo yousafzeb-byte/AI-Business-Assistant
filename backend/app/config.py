@@ -1,7 +1,9 @@
 import os
+import re
 import sys
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 # Load .env from project root (one level above backend/)
@@ -16,6 +18,32 @@ def _require_env(key: str) -> str:
         print(f"FATAL: required environment variable {key} is not set", file=sys.stderr)
         sys.exit(1)
     return value
+
+
+def _build_cors_origins(frontend_url: str) -> list[object]:
+    """Build allowed CORS origins with flexible localhost support for local dev."""
+    origins = [frontend_url]
+    extra_origins = os.getenv("CORS_ORIGINS", "")
+    if extra_origins:
+        origins.extend(origin.strip() for origin in extra_origins.split(",") if origin.strip())
+
+    parsed = urlparse(frontend_url)
+    if parsed.hostname in {"localhost", "127.0.0.1"}:
+        origins.extend([
+            re.compile(r"http://localhost:\d+"),
+            re.compile(r"http://127\.0\.0\.1:\d+"),
+        ])
+
+    deduped_origins: list[object] = []
+    seen_string_origins: set[str] = set()
+    for origin in origins:
+        if isinstance(origin, str):
+            if origin in seen_string_origins:
+                continue
+            seen_string_origins.add(origin)
+        deduped_origins.append(origin)
+
+    return deduped_origins
 
 
 class Config:
@@ -41,6 +69,7 @@ class Config:
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    CORS_ORIGINS = _build_cors_origins(FRONTEND_URL)
 
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
 
