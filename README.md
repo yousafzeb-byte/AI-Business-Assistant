@@ -6,7 +6,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![CI](https://github.com/yousafzeb-byte/AI-Business-Assistant/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/yousafzeb-byte/AI-Business-Assistant/actions/workflows/ci.yml/badge.svg?branch=main)
 
 ## 🎯 Project: Full-Stack AI Business Operations Platform
 
