@@ -55,8 +55,12 @@ def analyze_content(content: str) -> dict:
         result = json.loads(response.choices[0].message.content)
         return result
     except Exception as e:
-        logger.error("OpenAI API error: %s", e)
-        raise AIAnalysisError(f"AI analysis failed: {type(e).__name__}") from e
+        logger.warning(
+            "OpenAI analysis failed (%s). Falling back to mock analysis.",
+            type(e).__name__,
+            exc_info=True,
+        )
+        return _mock_analysis(content)
 
 
 def _mock_analysis(content: str) -> dict:

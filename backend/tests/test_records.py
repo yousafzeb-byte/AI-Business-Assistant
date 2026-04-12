@@ -2,6 +2,15 @@
 from flask.testing import FlaskClient
 
 
+class _FailingOpenAI:
+    def __init__(self, *args, **kwargs):
+        self.chat = self
+        self.completions = self
+
+    def create(self, *args, **kwargs):
+        raise RuntimeError("upstream unavailable")
+
+
 def _create_record(client: FlaskClient, auth_headers: dict, title: str = "Test Record", content: str = "Sample business content with a $50 expense"):
     return client.post("/api/records", json={
         "title": title,
@@ -17,6 +26,23 @@ class TestCreateRecord:
         assert record["title"] == "Test Record"
         assert record["input_type"] == "text"
         assert record["summary"] is not None
+
+    def test_create_record_falls_back_when_openai_fails(
+        self,
+        app,
+        client: FlaskClient,
+        auth_headers: dict,
+        monkeypatch,
+    ):
+        app.config["OPENAI_API_KEY"] = "test-key"
+        monkeypatch.setattr("app.services.ai_service.OpenAI", _FailingOpenAI)
+
+        resp = _create_record(client, auth_headers, content="Follow up on April invoice")
+
+        assert resp.status_code == 201
+        record = resp.get_json()["record"]
+        assert "AI analysis unavailable" in record["summary"]
+        assert record["category"] == "other"
 
     def test_create_record_no_content(self, client: FlaskClient, auth_headers: dict):
         resp = client.post("/api/records", json={"title": "Empty"}, headers=auth_headers)
