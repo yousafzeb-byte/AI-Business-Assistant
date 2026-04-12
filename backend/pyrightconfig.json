@@ -1,0 +1,4 @@
+{
+  "include": ["app", "tests"],
+  "typeCheckingMode": "off"
+}
