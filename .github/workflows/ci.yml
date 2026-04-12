@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+  BACKEND_IMAGE: ghcr.io/yousafzeb-byte/ai-business-assistant/backend
+  FRONTEND_IMAGE: ghcr.io/yousafzeb-byte/ai-business-assistant/frontend
 
 jobs:
   # ── CI: Lint, Test & Security Audit ──────────────────────────
