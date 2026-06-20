@@ -9,6 +9,10 @@ from marshmallow import Schema, fields, validate, ValidationError
 
 from app import db, limiter
 from app.models.user import User
+from app.utils.email import send_password_reset_email
+
+import logging
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -121,10 +125,28 @@ def forgot_password():
     frontend_url = current_app.config["FRONTEND_URL"]
     reset_link = f"{frontend_url}/reset-password?token={token}"
 
-    # Log reset link (in production, send via email service)
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Password reset link for {user.email}: {reset_link}")
+    smtp_host = current_app.config.get("SMTP_HOST", "")
+    if smtp_host:
+        sent = send_password_reset_email(
+            to_email=user.email,
+            reset_link=reset_link,
+            smtp_host=smtp_host,
+            smtp_port=current_app.config.get("SMTP_PORT", 587),
+            smtp_user=current_app.config.get("SMTP_USER", ""),
+            smtp_password=current_app.config.get("SMTP_PASSWORD", ""),
+            smtp_from=current_app.config.get("SMTP_FROM", "noreply@example.com"),
+        )
+        if not sent:
+            logger.warning(
+                "Email delivery failed for %s — reset link: %s",
+                user.email, reset_link,
+            )
+    else:
+        # SMTP not configured: log the link so developers can still test the flow
+        logger.info(
+            "SMTP not configured. Password reset link for %s: %s",
+            user.email, reset_link,
+        )
 
     return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
 

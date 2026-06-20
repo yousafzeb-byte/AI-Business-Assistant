@@ -16,9 +16,9 @@ A production-ready full-stack web application that helps small business owners a
 
 - Built a full-stack app with **React 19 + TypeScript** frontend and **Flask REST API** backend
 - JWT authentication with **access tokens (30 min)** and **refresh token rotation (7 days)**
-- **OpenAI GPT-4o-mini** integration for AI-powered document analysis with structured JSON output
+- **OpenAI GPT-4o-mini** integration for AI-powered document analysis with structured JSON output; degrades gracefully to mock when no API key is set
 - Production security: fail-fast secrets, Marshmallow validation, MIME checks, rate limiting, security headers
-- **36 automated tests** covering auth, records, analytics, soft delete, and token refresh
+- **38 automated tests** covering auth, records, analytics, soft delete, and token refresh
 - Containerized with **Docker Compose** (Postgres + Redis + Backend + Frontend) and **CI/CD via GitHub Actions**
 
 ## Architecture At A Glance
@@ -126,14 +126,14 @@ cd frontend && VITE_API_URL=http://localhost:5000/api npm run dev  # → http://
 
 ## 🧪 Unit Testing
 
-This project includes 36 automated tests covering all 12 API endpoints:
+This project includes 38 automated tests covering all 12 API endpoints:
 
 ### Running Tests
 
 ```bash
 cd backend
 SECRET_KEY=test JWT_SECRET_KEY=test DATABASE_URL=sqlite:///:memory: python -m pytest tests/ -v
-# 36 passed ✓
+# 38 passed ✓
 ```
 
 ### Test Breakdown by Module
@@ -177,6 +177,8 @@ SECRET_KEY=test JWT_SECRET_KEY=test DATABASE_URL=sqlite:///:memory: python -m py
 - `POST /api/auth/login` — Login and get access + refresh tokens
 - `POST /api/auth/refresh` — Get new access token using refresh token
 - `GET /api/auth/me` — Get current user profile (requires token)
+- `POST /api/auth/forgot-password` — Send password reset email (rate limited: 3/min)
+- `POST /api/auth/reset-password` — Complete reset with token (rate limited: 5/min)
 
 ### Records
 
@@ -261,7 +263,7 @@ AI-Business-Assistant/
 ### AI Integration
 
 - ✅ OpenAI GPT-4o-mini document analysis with structured JSON output
-- ✅ Explicit error propagation (no silent mock fallback)
+- ✅ Graceful degradation — returns mock analysis when `OPENAI_API_KEY` is not set
 - ✅ Content truncation to manage token usage
 
 ### File Upload & Data
@@ -286,15 +288,25 @@ AI-Business-Assistant/
 
 ## 🚀 Production Deployment
 
-This project is fully containerized and deployment-ready!
+This project is fully containerized and deployment-ready.
 
-### Quick Deploy
+### One-Click Deploy on Render (free tier)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+1. Fork the repo, then click **Deploy to Render** above
+2. Render reads `render.yaml` and provisions: PostgreSQL + Backend + Frontend
+3. Set `OPENAI_API_KEY` in the Backend service environment variables
+4. _(Optional)_ Add `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` to enable password-reset emails
+5. Update `FRONTEND_URL` (backend env) and `VITE_API_URL` (frontend env) with the actual Render service URLs
+
+### Self-Hosted via Docker Compose
 
 1. **Server**: Any VPS with Docker installed (DigitalOcean, AWS EC2, etc.)
 2. **Clone**: `git clone <repo> && cd AI-Business-Assistant`
 3. **Configure**: `cp .env.example .env && nano .env` (set real secrets)
 4. **Launch**: `docker compose up -d --build`
-5. **Done**: App available at your server's IP/domain
+5. **Done**: App available at your server’s IP/domain
 
 ### CI/CD Pipeline Features
 
