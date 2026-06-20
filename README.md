@@ -33,7 +33,29 @@ A production-ready full-stack web application that helps small business owners a
 
 ## Visual Showcase
 
-> Add screenshots and demo GIFs under `docs/media/` to make this project faster to evaluate for recruiters.
+### Login
+
+![Login page](docs/media/01-login.png)
+
+### Dashboard
+
+![Dashboard with stats and action items](docs/media/02-dashboard.png)
+
+### New Input — Paste Text or Upload File
+
+![New Input page](docs/media/03-new-input.png)
+
+### Record History — Search, Filter, Paginate
+
+![History page with records list](docs/media/04-history.png)
+
+### Record Detail — AI Summary, Extracted Info, Actions
+
+![Record detail with AI analysis](docs/media/05-record-detail.png)
+
+### Analytics — Charts & Expense Tracking
+
+![Analytics page with pie and bar charts](docs/media/06-analytics.png)
 
 ## 📋 Features Implemented
 
